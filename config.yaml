@@ -1,0 +1,27 @@
+model:
+  llm: qwen2.5:7b
+  embedding: nomic-embed-text
+  temperature: 0.3
+  max_tokens: 512
+ollama:
+  base_url: http://127.0.0.1:11434
+  timeout: 120
+vector_store:
+  collection_name: logistics_knowledge
+  persist_directory: ./chroma_db
+  similarity_metric: cosine
+  k: 5
+  score_threshold: 0.0
+text_splitter:
+  chunk_size: 800
+  chunk_overlap: 150
+server:
+  host: 127.0.0.1
+  port: 8000
+  workers: 1
+knowledge_base:
+  data_directory: ./data
+  supported_extensions: [".txt", ".md", ".pdf"]
+logging:
+  level: INFO
+  file: ./logs/logistics_rag.log

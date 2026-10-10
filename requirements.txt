@@ -1,0 +1,11 @@
+langchain-core==0.3.86
+langchain-ollama==0.3.10
+langchain-chroma==0.2.6
+langchain-text-splitters==0.3.11
+chromadb==1.5.9
+fastapi==0.143.0
+uvicorn==0.54.0
+pydantic==2.14.0
+python-dotenv==1.2.4
+PyYAML==6.0.3
+pypdf==6.20.0

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>物流行业智能问答系统</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 侧边栏 -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fas fa-truck-loading"></i>
+                    <h1>物流智能助手</h1>
+                </div>
+                <p class="subtitle">基于RAG技术的专业知识问答系统</p>
+            </div>
+
+            <div class="sidebar-content">
+                <div class="section">
+                    <h3><i class="fas fa-info-circle"></i> 系统信息</h3>
+                    <div class="system-info">
+                        <p><strong>模型：</strong><span id="model-info">Qwen2.5:7B</span></p>
+                        <p><strong>知识库：</strong><span id="kb-info">加载中...</span></p>
+                        <p><strong>状态：</strong><span id="status" class="status-ready">就绪</span></p>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3><i class="fas fa-lightbulb"></i> 示例问题</h3>
+                    <div class="examples">
+                        <button class="example-btn" data-question="什么是运单？它应该包含哪些信息？">
+                            运单的要素
+                        </button>
+                        <button class="example-btn" data-question="请解释ABC库存分类法">
+                            ABC库存分类法
+                        </button>
+                        <button class="example-btn" data-question="海运和空运各有什么优缺点？">
+                            运输方式比较
+                        </button>
+                        <button class="example-btn" data-question="如何计算经济订货批量？">
+                            经济订货批量计算
+                        </button>
+                        <button class="example-btn" data-question="什么是绿色物流？有哪些实践方法？">
+                            绿色物流实践
+                        </button>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3><i class="fas fa-cog"></i> 设置</h3>
+                    <div class="settings">
+                        <div class="setting-item">
+                            <label for="stream-toggle">流式响应：</label>
+                            <label class="switch">
+                                <input type="checkbox" id="stream-toggle" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <button id="clear-chat" class="btn-secondary">
+                            <i class="fas fa-trash"></i> 清空对话
+                        </button>
+                        <button id="refresh-kb" class="btn-secondary">
+                            <i class="fas fa-sync-alt"></i> 刷新知识库
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <p>物流知识库 · 学习与演示项目</p>
+            </div>
+        </div>
+
+        <!-- 主聊天区域 -->
+        <div class="main-content">
+            <div class="chat-header">
+                <h2><i class="fas fa-comments"></i> 物流智能问答</h2>
+                <div class="header-actions">
+                    <button id="new-chat" class="btn-primary">
+                        <i class="fas fa-plus"></i> 新对话
+                    </button>
+                </div>
+            </div>
+
+            <div class="chat-container">
+                <div id="chat-messages" class="chat-messages">
+                    <!-- 欢迎消息 -->
+                    <div class="message system-message">
+                        <div class="message-avatar">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        <div class="message-content">
+                            <div class="message-header">
+                                <strong>物流智能助手</strong>
+                                <span class="message-time" id="current-time"></span>
+                            </div>
+                            <div class="message-text">
+                                欢迎使用物流行业智能问答系统！我可以帮助您解答物流术语、操作流程、成本计算等各种问题。
+                                <br><br>
+                                <strong>您可以：</strong>
+                                <ul>
+                                    <li>直接输入您的问题</li>
+                                    <li>点击左侧的示例问题</li>
+                                    <li>查看回答所依据的知识片段</li>
+                                </ul>
+                                <br>
+                                <em>提示：这是单轮知识库问答，历史消息不参与后续检索；示例资料不代表真实企业政策。</em>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="input-area">
+                    <div class="input-container">
+                        <textarea
+                            id="message-input"
+                            placeholder="请输入您的问题，例如：什么是第三方物流？如何优化仓储管理？..."
+                            rows="1" maxlength="1000"
+                        ></textarea>
+                        <button id="send-button" class="send-button" title="发送">
+                            发送
+                        </button>
+                    </div>
+                    <div class="input-footer">
+                        <span class="hint">
+                            <i class="fas fa-keyboard"></i> 按 Enter 发送，Shift+Enter 换行
+                        </span>
+                        <span class="typing-indicator" id="typing-indicator" style="display: none;">
+                            <i class="fas fa-spinner fa-spin"></i> 正在思考...
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 来源面板 -->
+        <div class="sources-panel">
+            <div class="sources-header">
+                <h3><i class="fas fa-book"></i> 参考来源</h3>
+                <button id="toggle-sources" class="btn-icon">
+                    展开/收起
+                </button>
+            </div>
+            <div class="sources-content">
+                <div id="sources-list">
+                    <p class="sources-empty">暂无来源信息</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/sse.js"></script>
+    <script src="/static/js/chat.js"></script>
+</body>
+</html>

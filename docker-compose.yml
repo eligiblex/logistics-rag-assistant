@@ -1,0 +1,33 @@
+services:
+  ollama:
+    image: ollama/ollama:0.12.6
+    volumes:
+      - ollama_models:/root/.ollama
+  model-init:
+    image: ollama/ollama:0.12.6
+    depends_on:
+      - ollama
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - "until ollama list >/dev/null 2>&1; do sleep 2; done; ollama pull qwen2.5:7b && ollama pull nomic-embed-text"
+    restart: "no"
+  rag-api:
+    build: .
+    depends_on:
+      model-init:
+        condition: service_completed_successfully
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      OLLAMA_BASE_URL: http://ollama:11434
+      SERVER_HOST: 0.0.0.0
+    volumes:
+      - ./data:/app/data:ro
+      - chroma_data:/app/chroma_db
+      - app_logs:/app/logs
+volumes:
+  ollama_models:
+  chroma_data:
+  app_logs:

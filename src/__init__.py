@@ -1,0 +1,1 @@
+"""Logistics RAG application components."""
