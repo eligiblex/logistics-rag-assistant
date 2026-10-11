@@ -2,6 +2,7 @@ import hashlib
 from pathlib import Path
 import pytest
 from pypdf import PdfWriter
+from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 from src.config import SystemConfig
 from src.document_processor import DocumentProcessor
@@ -10,7 +11,10 @@ from src.vector_store import VectorStoreManager
 
 class TestEmbeddings(Embeddings):
     __test__ = False
+    batch_sizes: list[int] = []
+
     def embed_documents(self, texts):
+        self.batch_sizes.append(len(texts))
         return [self.embed_query(text) for text in texts]
 
     def embed_query(self, text):
@@ -64,3 +68,16 @@ def test_refresh_idempotent_and_removes_stale_chunks(tmp_path):
 def test_invalid_overlap():
     with pytest.raises(ValueError):
         SystemConfig.model_validate({'text_splitter': {'chunk_size': 100, 'chunk_overlap': 100}})
+
+
+def test_embedding_batch_size_is_respected(tmp_path):
+    options = settings(tmp_path)
+    options.vector_store.embedding_batch_size = 2
+    embeddings = TestEmbeddings()
+    embeddings.batch_sizes = []
+    documents = [
+        Document(page_content=f'分块 {index}', metadata={'id': str(index)})
+        for index in range(5)
+    ]
+    VectorStoreManager(options, embeddings).create_vectorstore(documents)
+    assert embeddings.batch_sizes == [2, 2, 1]

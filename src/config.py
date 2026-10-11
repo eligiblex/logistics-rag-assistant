@@ -19,11 +19,13 @@ class ModelSettings(Section):
 class OllamaSettings(Section):
     base_url: str = "http://127.0.0.1:11434"
     timeout: float = Field(default=120, ge=1)
+    trust_env: bool = False
 
 class VectorSettings(Section):
     collection_name: str = "logistics_knowledge"
     persist_directory: str = "./chroma_db"
     similarity_metric: str = "cosine"
+    embedding_batch_size: int = Field(default=1, ge=1, le=128)
     k: int = Field(default=5, ge=1, le=20)
     score_threshold: float = Field(default=0, ge=-1, le=1)
 
@@ -73,6 +75,7 @@ class ConfigManager:
         mappings = {
             "OLLAMA_BASE_URL": ("ollama", "base_url"),
             "OLLAMA_TIMEOUT": ("ollama", "timeout"),
+            "OLLAMA_TRUST_ENV": ("ollama", "trust_env"),
             "LLM_MODEL": ("model", "llm"),
             "EMBEDDING_MODEL": ("model", "embedding"),
             "SERVER_HOST": ("server", "host"),

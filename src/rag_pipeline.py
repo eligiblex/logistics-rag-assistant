@@ -21,7 +21,10 @@ class RAGPipeline:
             model=self.settings.model.llm, base_url=self.settings.ollama.base_url,
             temperature=self.settings.model.temperature,
             num_predict=self.settings.model.max_tokens,
-            client_kwargs={"timeout": self.settings.ollama.timeout},
+            client_kwargs={
+                "timeout": self.settings.ollama.timeout,
+                "trust_env": self.settings.ollama.trust_env,
+            },
         )
         self.chain = ChatPromptTemplate.from_messages(
             [("system", SYSTEM_PROMPT), ("human", "{question}")]

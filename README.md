@@ -117,11 +117,12 @@ data: {"type":"done","elapsed_ms":1234}
 | EMBEDDING_MODEL | nomic-embed-text | 向量模型 |
 | OLLAMA_BASE_URL | http://127.0.0.1:11434 | 改为远程地址会发送问题和资料给该服务 |
 | OLLAMA_TIMEOUT | 120 | 单次网络请求超时，秒 |
+| OLLAMA_TRUST_ENV | false | 是否让 Ollama 客户端读取系统代理；本机服务建议关闭，避免 localhost 被代理成 502 |
 | CHROMA_DIRECTORY | ./chroma_db | 索引目录 |
 | KNOWLEDGE_DATA_DIR | ./data | 资料目录 |
 | SERVER_HOST / SERVER_PORT | 127.0.0.1 / 8000 | 默认只监听本机 |
 
-config.yaml 还可调整 chunk_size、chunk_overlap、k、score_threshold。阈值是向量相关性分数，不是答案正确率；未校准，不保证拒答所有无关问题。修改 Embedding 模型请使用新的索引目录，避免混用向量。
+config.yaml 还可调整 chunk_size、chunk_overlap、embedding_batch_size、k、score_threshold。`embedding_batch_size` 默认设为 1，以兼容本地内存较小或不支持大批量请求的 Ollama；机器资源充足时可逐步调大。阈值是向量相关性分数，不是答案正确率；未校准，不保证拒答所有无关问题。修改 Embedding 模型请使用新的索引目录，避免混用向量。
 
 把合法持有、无隐私的资料放进 data 后刷新。扫描 PDF 不含文本层时会被跳过，本项目未集成 OCR。空资料不会覆盖已有索引。
 

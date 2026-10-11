@@ -6,10 +6,12 @@ model:
 ollama:
   base_url: http://127.0.0.1:11434
   timeout: 120
+  trust_env: false
 vector_store:
   collection_name: logistics_knowledge
   persist_directory: ./chroma_db
   similarity_metric: cosine
+  embedding_batch_size: 1
   k: 5
   score_threshold: 0.0
 text_splitter:

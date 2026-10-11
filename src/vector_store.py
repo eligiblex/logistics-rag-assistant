@@ -11,7 +11,10 @@ class VectorStoreManager:
         self.embeddings = embeddings if embeddings is not None else OllamaEmbeddings(
             model=self.settings.model.embedding,
             base_url=self.settings.ollama.base_url,
-            client_kwargs={"timeout": self.settings.ollama.timeout},
+            client_kwargs={
+                "timeout": self.settings.ollama.timeout,
+                "trust_env": self.settings.ollama.trust_env,
+            },
         )
         self.vectorstore = None
 
@@ -40,8 +43,9 @@ class VectorStoreManager:
                 raise ValueError("Refusing to replace the knowledge base with empty input")
             existing = set(store.get(include=[])["ids"])
             new_ids = sorted(set(desired) - existing)
-            for offset in range(0, len(new_ids), 128):
-                batch = new_ids[offset:offset + 128]
+            batch_size = self.settings.vector_store.embedding_batch_size
+            for offset in range(0, len(new_ids), batch_size):
+                batch = new_ids[offset:offset + batch_size]
                 store.add_documents([desired[key] for key in batch], ids=batch)
             obsolete = sorted(existing - set(desired))
             if obsolete:
