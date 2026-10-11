@@ -1,8 +1,8 @@
-# 物流知识库 RAG 问答系统
+# 物流 RAG 与异常处理 Agent
 
 [![CI](https://github.com/eligiblex/logistics-rag-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/eligiblex/logistics-rag-assistant/actions/workflows/ci.yml)
 
-基于 **LangChain + Ollama + Chroma + FastAPI** 的本地知识库问答练习项目。支持文档导入、带来源的回答、SSE 流式展示和知识库刷新。项目定位是可复现的学习原型，不是生产级物流平台，也不能查询真实订单轨迹或实时运价。
+基于 **LangChain + Ollama + Chroma + FastAPI** 的本地物流 AI 应用。除了带来源的 RAG 问答，还包含一个可调试的异常处理 Agent：它会规划白名单工具、查询演示运单、评估异常，并在创建工单等动作前暂停等待人工审批。项目定位是可复现的学习原型，不是生产级物流平台，不能查询真实订单轨迹或实时运价。
 
 ## 功能与工程设计
 
@@ -12,6 +12,8 @@
 - 普通 JSON 与 SSE 两种查询方式；SSE 依次传输来源、文本增量、完成状态。
 - 浏览器正确缓冲跨包 UTF-8 和半条 SSE 消息；使用 textContent 展示模型输出，避免把输出当 HTML 执行。
 - Pydantic 输入校验、配置覆盖、错误处理、刷新互斥与状态查询；18 项 Python 测试及 Node 流式解析测试。
+- 显式状态机 Agent：工具计划、执行结果、审批点和最终答复都有 Trace；SQLite 保存运行状态，支持服务重启后恢复审批。
+- 工单、投诉、理赔类动作必须人工批准；动作只生成带 `DEMO-` 前缀的本地演示工单，不会调用真实外部系统。
 
 ## 数据流
 
@@ -23,6 +25,13 @@ TXT / Markdown / PDF → 加载与分块 → Ollama Embedding → Chroma 持久�
 ```
 
 默认单轮问答。页面保留显示记录，但历史消息和 session_id 不参与下一次检索；不要将其描述为已实现对话记忆。
+
+Agent 工作流：
+
+```text
+请求 → 规划 → RAG 检索 → 可选的运单查询/异常评估 → 审批门 → 答复
+                                                       └→ 本地 DEMO 工单
+```
 
 ## 快速开始
 
@@ -78,6 +87,9 @@ python main.py
 | POST | /api/query/stream | SSE：sources → token → done；失败为 error |
 | GET | /api/knowledge-base/info | 片段数量、Embedding 模型、刷新状态 |
 | POST | /api/knowledge-base/refresh | 后台刷新，接受返回 202，已有任务返回 409 |
+| POST | /api/agent/runs | 创建一次 Agent 运行 |
+| GET | /api/agent/runs/{run_id} | 查询状态、工具结果和 Trace |
+| POST | /api/agent/runs/{run_id}/decision | 批准或拒绝待执行动作 |
 
 查询请求：
 
@@ -122,7 +134,7 @@ python -m ruff check .
 node tests/test_sse.cjs
 ```
 
-单元测试不需要 Ollama、外网或 API Key，使用确定性假向量和假模型。Node 测试覆盖所有字节切分位置、中文/emoji、换行、CRLF 及中断事件。
+单元测试不需要 Ollama、外网或 API Key，使用确定性假向量和假模型。Agent 测试覆盖工具规划、异常分级、人工批准/拒绝、SQLite 恢复和 API 状态冲突。Node 测试覆盖所有字节切分位置、中文/emoji、换行、CRLF 及中断事件。
 
 真实 Ollama 检索检查（需要已下载 Embedding 模型，不调用生成模型）：
 
@@ -152,7 +164,7 @@ Gradio 是备选展示入口，核心验证以 FastAPI 自定义网页为准。
 ## 项目结构
 
 ```text
-src/          配置、文档处理、向量索引、RAG 流水线、API
+src/          配置、文档处理、向量索引、RAG 流水线、Agent、API
 static/       前端样式、SSE 解析与聊天交互
 templates/    网页模板
 data/         教学示例知识文本
@@ -161,10 +173,13 @@ scripts/      小样本检索检查
 docs/         验证范围与使用边界
 ```
 
+建议从 [Agent 学习与断点指南](docs/agent-learning-guide.md) 开始，按文件顺序调试，并用 Swagger 完成一次“暂停 → 人工批准 → 恢复”演示。
+
 ## 已知边界
 
 - 默认资料只是小型教学样例，不是企业知识资产；事实、规则和公式需在实际业务中另行核实。
 - 引用片段可追踪，不等于引用一定正确；模型仍可能产生幻觉。
 - 采用单进程内嵌 Chroma 和线程锁，不支持多实例共享目录部署；刷新跨批次不是事务，失败后应重试同步并检查状态。
 - 尚未实现混合检索、Reranker、鉴权、用户隔离、速率限制及正式基准评测。请勿直接暴露公网。
+- 当前 Agent 使用显式规则规划，便于学习和测试；尚未接入模型结构化规划、真实订单沙箱、分布式任务队列与多实例共享状态。
 - 当前公开展示项目，尚未指定开源许可证。模型和依赖遵循各自的使用条款。

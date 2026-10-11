@@ -50,6 +50,10 @@ class RAGPipeline:
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "elapsed_ms": round((time.perf_counter() - started) * 1000)}
 
+    def answer_with_context(self, question, context):
+        """Generate from explicit tool context without triggering a second retrieval."""
+        return self.chain.invoke({"question": question, "context": context})
+
     def stream_events(self, question):
         started = time.perf_counter()
         inputs, sources = self.prepare(question)

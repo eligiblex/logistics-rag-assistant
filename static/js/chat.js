@@ -52,6 +52,10 @@ async function send() {
     byId("message-input").value = "";
     byId("sources-list").textContent = "正在检索...";
     try {
+        if (byId("agent-toggle").checked) {
+            await sendAgent(question, answer);
+            return;
+        }
         const streaming = byId("stream-toggle").checked;
         const response = await fetch(streaming ? "/api/query/stream" : "/api/query", {
             method: "POST", headers: { "Content-Type": "application/json" },
@@ -89,6 +93,29 @@ async function send() {
         answer.textContent += "\n[未完成] " + error.message + "。请重试。";
     } finally { setBusy(false); }
 }
+async function sendAgent(question, answer) {
+    let response = await fetch("/api/agent/runs", {
+        method: "POST", headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({query: question})
+    });
+    if (!response.ok) throw new Error("Agent 请求失败（HTTP " + response.status + "）");
+    let run = await response.json();
+    showSources(run.sources || []);
+    if (run.status === "waiting_approval") {
+        const approved = window.confirm(
+            "Agent 请求执行：" + run.pending_action.tool + "\n" +
+            run.pending_action.reason + "\n\n是否批准？（只创建本地 DEMO 工单）"
+        );
+        response = await fetch("/api/agent/runs/" + encodeURIComponent(run.run_id) + "/decision", {
+            method: "POST", headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({approved})
+        });
+        if (!response.ok) throw new Error("审批提交失败（HTTP " + response.status + "）");
+        run = await response.json();
+    }
+    const trace = run.trace.map(item => "• " + item.step + "：" + item.detail).join("\n");
+    answer.textContent = (run.answer || "Agent 未生成答复") + "\n\n运行 Trace\n" + trace;
+}
 async function updateStatus() {
     try {
         const [statusResponse, kbResponse] = await Promise.all([fetch("/api/status"), fetch("/api/knowledge-base/info")]);
@@ -115,8 +142,15 @@ byId("message-input").addEventListener("keydown", event => {
     if (event.key === "Enter" && !event.shiftKey && !event.isComposing) { event.preventDefault(); send(); }
 });
 document.querySelectorAll(".example-btn").forEach(button => button.addEventListener("click", () => {
-    if (!busy) { byId("message-input").value = button.dataset.question; send(); }
+    if (!busy) {
+        if (button.classList.contains("agent-example")) byId("agent-toggle").checked = true;
+        byId("message-input").value = button.dataset.question;
+        send();
+    }
 }));
+byId("agent-toggle").addEventListener("change", () => {
+    byId("stream-toggle").disabled = byId("agent-toggle").checked;
+});
 byId("clear-chat").addEventListener("click", clearChat);
 byId("new-chat").addEventListener("click", clearChat);
 byId("refresh-kb").addEventListener("click", async () => {

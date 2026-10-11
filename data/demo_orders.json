@@ -1,0 +1,29 @@
+[
+  {
+    "tracking_number": "SF12345678",
+    "status": "in_transit",
+    "route": "长沙 → 呼和浩特",
+    "last_event": "包裹已到达武汉中转场",
+    "estimated_delivery": "2026-10-12",
+    "delay_hours": 6,
+    "exception_reason": null
+  },
+  {
+    "tracking_number": "YT87654321",
+    "status": "delayed",
+    "route": "杭州 → 北京",
+    "last_event": "受天气影响滞留济南转运中心",
+    "estimated_delivery": "2026-10-14",
+    "delay_hours": 36,
+    "exception_reason": "极端天气导致干线延误"
+  },
+  {
+    "tracking_number": "JD11223344",
+    "status": "damaged",
+    "route": "深圳 → 上海",
+    "last_event": "分拣环节发现外包装破损",
+    "estimated_delivery": null,
+    "delay_hours": 52,
+    "exception_reason": "外包装破损，等待人工复核"
+  }
+]

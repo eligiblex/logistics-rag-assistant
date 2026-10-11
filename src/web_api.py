@@ -13,6 +13,7 @@ from .config import ROOT, config
 from .document_processor import DocumentProcessor
 from .vector_store import VectorStoreManager
 from .rag_pipeline import RAGPipeline
+from .agent import AgentRunStore, AgentService, LogisticsToolbox
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +30,23 @@ class QueryRequest(BaseModel):
             raise ValueError("Question must not be blank")
         return value.strip()
 
-def create_app(pipeline=None, settings=None, initialize=True):
+class AgentRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    query: str = Field(min_length=1, max_length=1000)
+    tracking_number: str | None = Field(default=None, min_length=8, max_length=32)
+
+    @field_validator("query")
+    @classmethod
+    def nonblank_query(cls, value):
+        if not value.strip():
+            raise ValueError("Query must not be blank")
+        return value.strip()
+
+class ApprovalRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    approved: bool
+
+def create_app(pipeline=None, settings=None, initialize=True, agent_service=None):
     options = settings or config
 
     @asynccontextmanager
@@ -39,10 +56,15 @@ def create_app(pipeline=None, settings=None, initialize=True):
             manager = VectorStoreManager(options)
             manager.create_vectorstore(processor.process_documents())
             app.state.pipeline = RAGPipeline(manager, options)
+        if app.state.agent_service is None and app.state.pipeline is not None:
+            store = AgentRunStore(options.resolve("./logs/agent_runs.sqlite3"))
+            tools = LogisticsToolbox(ROOT / "data" / "demo_orders.json")
+            app.state.agent_service = AgentService(app.state.pipeline, store, tools)
         yield
 
     app = FastAPI(title="Logistics RAG Assistant", version="1.1.0", lifespan=lifespan)
     app.state.pipeline = pipeline
+    app.state.agent_service = agent_service
     app.state.processor = DocumentProcessor(options)
     app.state.started = time.monotonic()
     app.state.refresh_lock = threading.Lock()
@@ -53,6 +75,11 @@ def create_app(pipeline=None, settings=None, initialize=True):
         if app.state.pipeline is None:
             raise HTTPException(503, "知识库尚未初始化")
         return app.state.pipeline
+
+    def agent_ready():
+        if app.state.agent_service is None:
+            raise HTTPException(503, "Agent 尚未初始化")
+        return app.state.agent_service
 
     @app.get("/", include_in_schema=False)
     def index():
@@ -93,6 +120,28 @@ def create_app(pipeline=None, settings=None, initialize=True):
                 yield 'data: {"type":"error","message":"回答未完成，请检查模型服务后重试"}\n\n'
         return StreamingResponse(events(), media_type="text/event-stream",
                                  headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+    @app.post("/api/agent/runs", status_code=201)
+    def start_agent(request: AgentRequest):
+        run = agent_ready().start(request.query, request.tracking_number)
+        return run.model_dump()
+
+    @app.get("/api/agent/runs/{run_id}")
+    def get_agent_run(run_id: str):
+        run = agent_ready().get(run_id)
+        if run is None:
+            raise HTTPException(404, "运行记录不存在")
+        return run.model_dump()
+
+    @app.post("/api/agent/runs/{run_id}/decision")
+    def decide_agent_run(run_id: str, request: ApprovalRequest):
+        service = agent_ready()
+        before = service.get(run_id)
+        if before is None:
+            raise HTTPException(404, "运行记录不存在")
+        if before.status != "waiting_approval":
+            raise HTTPException(409, "当前运行不在等待审批状态")
+        return service.decide(run_id, request.approved).model_dump()
 
     @app.get("/api/knowledge-base/info")
     def knowledge_info():

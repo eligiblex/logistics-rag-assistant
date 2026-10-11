@@ -46,6 +46,9 @@
                         <button class="example-btn" data-question="什么是绿色物流？有哪些实践方法？">
                             绿色物流实践
                         </button>
+                        <button class="example-btn agent-example" data-question="请为 YT87654321 创建工单处理延误">
+                            Agent 异常处理演示
+                        </button>
                     </div>
                 </div>
 
@@ -56,6 +59,13 @@
                             <label for="stream-toggle">流式响应：</label>
                             <label class="switch">
                                 <input type="checkbox" id="stream-toggle" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <label for="agent-toggle">异常处理 Agent：</label>
+                            <label class="switch">
+                                <input type="checkbox" id="agent-toggle">
                                 <span class="slider"></span>
                             </label>
                         </div>
@@ -107,7 +117,7 @@
                                     <li>查看回答所依据的知识片段</li>
                                 </ul>
                                 <br>
-                                <em>提示：这是单轮知识库问答，历史消息不参与后续检索；示例资料不代表真实企业政策。</em>
+                                <em>提示：默认是单轮知识库问答；打开“异常处理 Agent”后可体验工具调用、运行 Trace 和人工审批。订单与工单均为本地演示数据。</em>
                             </div>
                         </div>
                     </div>
